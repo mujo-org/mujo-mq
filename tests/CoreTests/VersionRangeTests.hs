@@ -1,11 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module CoreTests.VersionRangeTests where
 
+import qualified Data.Aeson as J
+import Data.Either (isLeft)
 import Data.Word (Word16)
 import GHC.Generics (Generic)
 import Generic.Random (genericArbitraryU)
@@ -31,6 +34,12 @@ versionRangeTests = modifyMaxSuccess (const 1000) $ do
       vr 1 1 `shouldBe` vr 1 1
       vr 1 2 `shouldBe` vr 1 2
       (pure $! vr 2 1) `shouldThrow` anyErrorCall
+  describe "VersionRange JSON encoding" $ do
+    it "should parse valid range" $ do
+      J.eitherDecode "{\"minVersion\":1,\"maxVersion\":2}" `shouldBe` Right (vr 1 2 :: VersionRange T)
+      J.eitherDecode (J.encode $ vr 1 1) `shouldBe` Right (vr 1 1 :: VersionRange T)
+    it "should fail on invalid range" $
+      isLeft (J.eitherDecode "{\"minVersion\":2,\"maxVersion\":1}" :: Either String (VersionRange T)) `shouldBe` True
   describe "compatible version" $ do
     it "should choose mutually compatible max version" $ do
       (vr 1 1, vr 1 1) `compatible` Just (Version 1)

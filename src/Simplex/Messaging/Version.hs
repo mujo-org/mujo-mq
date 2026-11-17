@@ -53,7 +53,7 @@ instance J.FromJSON (VersionRange v) where
   parseJSON (J.Object v) = do
     minVersion <- v .: "minVersion"
     maxVersion <- v .: "maxVersion"
-    pure VRange {minVersion, maxVersion}
+    maybe (fail "invalid version range") pure $ safeVersionRange minVersion maxVersion
   parseJSON invalid =
     JT.prependFailure "bad VersionRange, " (JT.typeMismatch "Object" invalid)
 

@@ -162,6 +162,19 @@ fi
 
 ### Build from source
 
+#### Development with Nix
+
+For a fresh checkout, initialize the submodules and build with tests in the pinned Nix development environment:
+
+```sh
+git clone https://github.com/mujo-org/mujo-mq.git
+cd mujo-mq
+git submodule update --init --recursive
+nix develop --command cabal build --enable-tests all
+```
+
+The checked-in `flake.lock` pins the Nix input, and the development shell supplies GHC 9.6.3 and Cabal. Do not set `LD_LIBRARY_PATH` while using the Nix shell. Recursive submodule initialization is required because the build uses `cbits/blst` and `cbits/libbbs`.
+
 #### Using Docker
 
 > **Please note:** to build the app use source code from [stable branch](https://github.com/simplex-chat/simplexmq/tree/stable).

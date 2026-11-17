@@ -935,8 +935,7 @@ testXFTPAgentDelete = withGlobalLogging logCfgNoLogs . withXFTPServer test
           Nothing <- 100000 `timeout` sfGet sndr
           pure ()
 
-        threadDelay 1000000
-        length <$> listDirectory xftpServerFiles `shouldReturn` 0
+        waitServerFiles 0
 
         -- receive file - should fail with AUTH error
         withAgent 3 agentCfg initAgentServers testDB2 $ \rcp2 -> runRight $ do
@@ -974,8 +973,7 @@ testXFTPAgentDeleteRestore = withGlobalLogging logCfgNoLogs $ do
     withAgent 4 agentCfg initAgentServers testDB $ \sndr' -> do
       runRight_ $ xftpStartWorkers sndr' (Just senderFiles)
 
-      threadDelay 1000000
-      length <$> listDirectory xftpServerFiles `shouldReturn` 0
+      waitServerFiles 0
 
       -- receive file - should fail with AUTH error
       withAgent 5 agentCfg initAgentServers testDB3 $ \rcp2 -> runRight $ do
@@ -1103,6 +1101,14 @@ testXFTPAgentDeleteDuringDownload = do
       timeout 30000000 (rfGet rcp) >>= \case
         Just ("", rfId', RFERR e) -> (rfId', e) `shouldBe` (rfId, FILE NO_FILE)
         r -> expectationFailure $ "unexpected event " <> show r
+
+-- deletion workers run asynchronously, a fixed delay is flaky under load
+waitServerFiles :: (HasCallStack, HasTestEnv) => Int -> IO ()
+waitServerFiles n = go (50 :: Int)
+  where
+    go retries = do
+      files <- length <$> listDirectory xftpServerFiles
+      if files == n || retries == 0 then files `shouldBe` n else threadDelay 100000 >> go (retries - 1)
 
 waitForAttempt :: HasCallStack => AgentClient -> (AgentXFTPServerStats -> TVar Int) -> IO ()
 waitForAttempt c attempts = do
